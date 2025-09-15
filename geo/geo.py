@@ -8,7 +8,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 #-----------------get the raw data and convert it into python------------------------
-folder_path = Path(r"C:\Users\Mahsa\Desktop\geo")
+folder_path = Path(r"C:\Users\Mahsa\Desktop\geo\geo")
 province_code = [f"{i:02d}" for i in range(31)]
 #file_path = Path(r"C:\Users\Mahsa\Desktop\geo\GEO89Xlsx.xlsx")
 #file_name = "GEO89Xlsx.xlsx"
@@ -31,14 +31,15 @@ for file_path in folder_path.glob('*.xlsx'):
         print(np.all(df["شهرستان"].isna().sum()==31))
         df["year"] = year
         pd.to_pickle(df, fr"C:\Users\Mahsa\Desktop\geo\processed\GEO_{year}.pkl")
-    elif year >= 93 and year < 99:
-        df = pd.read_excel(file_path, dtype={"address": "str"})
-        df["year"] = year
-        pd.to_pickle(df, fr"C:\Users\Mahsa\Desktop\geo\processed\GEO_{year}.pkl")
     else:
         df = pd.read_excel(file_path,dtype={"address": "str"})
         df["year"] = year
         pd.to_pickle(df, fr"C:\Users\Mahsa\Desktop\geo\processed\GEO_{year}.pkl")
+        
+# why print(np.all(df["شهرستان"].isna().sum()==31)) for year ==92 is False
+data = pd.read_pickle(r"C:\Users\Mahsa\Desktop\geo\processed\GEO_92.pkl")
+data.loc[data["شهرستان"]=="     "]
+data.loc[data["شهرستان"].isna()]
       
 #-------------------------------data cleaning----------------------------------------------
 folder_path = Path(r"C:\Users\Mahsa\Desktop\geo\processed")
@@ -59,7 +60,6 @@ for file_path in folder_path.glob('*.pkl'):
                           "دهستان": "dehestan",
                           "آبادی": "abadi"}, inplace = True)
    elif year == 92:
-       df[df["شهرستان"].isna()]
        df = df.dropna(subset = ["شهرستان"])
        df = df.replace(r'^\s*$', np.nan, regex=True)
        print(np.all(df["شهرستان"].isna().sum()==31))
@@ -139,7 +139,8 @@ list_inOrder = [
     r"C:\Users\Mahsa\Desktop\geo\processed\GEO_99_2.pkl",
     r"C:\Users\Mahsa\Desktop\geo\processed\GEO_1400_2.pkl",
     r"C:\Users\Mahsa\Desktop\geo\processed\GEO_1401_2.pkl",
-    r"C:\Users\Mahsa\Desktop\geo\processed\GEO_1402_2.pkl"
+    r"C:\Users\Mahsa\Desktop\geo\processed\GEO_1402_2.pkl",
+    r"C:\Users\Mahsa\Desktop\geo\processed\GEO_1403_2.pkl"
 ]
 for file_path in list_inOrder:
     file_name = file_path.split('\\')[-1]
@@ -165,7 +166,8 @@ for file_path in list_inOrder:
 GEO_all["year"] = GEO_all["year"].astype(int)
 GEO_all.to_pickle(r"C:\Users\Mahsa\Desktop\geo\processed\GEO_all.pkl")
 
-
+data = pd.read_pickle(r"C:\Users\Mahsa\Desktop\geo\processed\GEO_all.pkl")
+data
 #---------------------------------deep into it----------------------------------------
 
 geo_all = pd.read_pickle(r"C:\Users\Mahsa\Desktop\geo\processed\GEO_all.pkl")
@@ -184,7 +186,7 @@ for year in sorted(geo_all["year"].unique()):
 
 geo.isna().sum()
 geo.to_pickle(r"C:\Users\Mahsa\Desktop\geo\processed\geo.pkl")
-#geo.to_excel(r"C:\Users\Mahsa\Desktop\geo\processed\geo.xlsx")
+#geo.to_excel(r"C:\Users\Mahsa\Desktop\geo\processed\geo_2.xlsx")
 
 #-----------------------------------------check the data----------------------------------------
 
@@ -201,6 +203,7 @@ np.all([
     geo["county1400"].isna().sum() == geo_all.shape[0] - geo_all[geo_all["year"]<=1400].shape[0] + 1, # طبس
     geo["county1401"].isna().sum() == geo_all.shape[0] - geo_all[geo_all["year"]<=1401].shape[0] + 1, # طبس
     geo["county1402"].isna().sum() == geo_all.shape[0] - geo_all[geo_all["year"]<=1402].shape[0] + 1, # طبس
+    geo["county1403"].isna().sum() == geo_all.shape[0] - geo_all[geo_all["year"]<=1403].shape[0] + 1 # طبس
 ])
 geo.columns
 '''
@@ -225,10 +228,11 @@ list_ofColumns = [
     "2020-2021",
     "2021-2022",
     "2022-2023",
-    "2023-2024"
+    "2023-2024",
+    "2024-2025"
 ]
 num_counties = [
-    397,397,421,429,429,429,429,429,434,448,457,469,474,482
+    397,397,421,429,429,429,429,429,434,448,457,469,474,482,484
 ]
 
 plt.figure(figsize=(20, 10))
@@ -249,7 +253,7 @@ df = df[["address","province"]]
 df.shape
 df.columns
 df.head()
-df.to_pickle(r"C:\Users\Mahsa\Desktop\geo\processed\geo_province.pkl")
+geo = pd.read_pickle(r"C:\Users\Mahsa\Desktop\geo\processed\geo.pkl")
 geo["province_code"] = geo["address"].str[0:2]
 geo = pd.merge(geo, df, right_on = "address", left_on= "province_code", how = "left")
 geo.rename(columns={
@@ -257,9 +261,13 @@ geo.rename(columns={
 }, inplace=True)
 geo.drop(columns=["address_y"], inplace=True)
 geo.head()
+geo.to_pickle(r"C:\Users\Mahsa\Desktop\geo\processed\geo_province.pkl")
+
+geo_province = pd.read_pickle(r"C:\Users\Mahsa\Desktop\geo\processed\geo_province.pkl")
+geo_province.head()
 
 #---------------------------------------------------------------------------------------------
-geo_p = geo.groupby("province_code").aggregate(
+geo_p = geo_province.groupby("province_code").aggregate(
         province = ("province", 'first'),
         county89=("county89", lambda x: x.notna().sum()),
         county1402 = ("county1402", lambda x: x.notna().sum())
